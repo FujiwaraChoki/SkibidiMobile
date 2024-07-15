@@ -79,9 +79,9 @@ def main():
 
             if (msg == "\n") and (len(msg_string) > 0):
                 print("[<=] Message: ", msg_string)
-                if msg_string == "forward":
+                if msg_string == "f":
                     move_forward()
-                elif msg_string == "backward":
+                elif msg_string == "b":
                     move_backward()
                 else:
                     stop()
