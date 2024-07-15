@@ -15,7 +15,7 @@ RECV_PIPE = b"\xd2\xf0\xf0\xf0\xf0"
 
 # Function to flash the LED
 def flash_led(n):
-    for i in range(n):
+    for _ in range(n):
         LED.value(1)
         time.sleep(0.1)
         LED.value(0)
@@ -27,12 +27,12 @@ def send(nrf, msg):
     nrf.stop_listening()
     try:
         for ch in msg:
-            encoded_char = ch.encode('utf-8')
+            encoded_char = ch.encode()
             buf = struct.pack("s", encoded_char)
             nrf.send(buf)
             flash_led(1)
         # Send a newline character to indicate end of message
-        nrf.send(b"\n")
+        nrf.send("\n")
     except OSError as e:
         print("Error sending message: ", e)
     nrf.start_listening()
@@ -49,9 +49,8 @@ def setup_radio():
 def main():
     radio = setup_radio()
     while True:
-        print("Choose a direction: ")
-        direction = input()
-        send(radio, direction)
+        msg = input("Enter message: ")
+        send(radio, msg)
 
 if __name__ == "__main__":
     main()
