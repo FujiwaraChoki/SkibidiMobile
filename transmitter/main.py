@@ -21,20 +21,20 @@ def flash_led(n):
         LED.value(0)
         time.sleep(0.1)
 
-# Function to send a message
 def send(nrf, msg):
-    print("Sending message: ", msg)
+    print("sending message.", msg)
     nrf.stop_listening()
-    try:
-        for ch in msg:
-            encoded_char = ch.encode()
-            buf = struct.pack("s", encoded_char)
+    for n in range(len(msg)):
+        try:
+            encoded_string = msg[n].encode()
+            byte_array = bytearray(encoded_string)
+            buf = struct.pack("s", byte_array)
             nrf.send(buf)
+            # print(role,"message",msg[n],"sent")
             flash_led(1)
-        # Send a newline character to indicate end of message
-        nrf.send("\n")
-    except OSError as e:
-        print("Error sending message: ", e)
+        except OSError:
+            print("Message not sent")
+    nrf.send("\n")
     nrf.start_listening()
 
 # Setup the nRF24L01 Radio
