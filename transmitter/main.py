@@ -49,8 +49,7 @@ def setup_radio():
 def main():
     radio = setup_radio()
     while True:
-        msg = input("Enter message: ")
-        send(radio, msg)
+        send(radio, "forward")
 
 if __name__ == "__main__":
     main()
