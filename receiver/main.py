@@ -1,9 +1,14 @@
-import time
-import struct
-from nrf24l01 import NRF24L01
-from machine import Pin, SoftSPI
+# demo.py
+# Kevin McAleer
+# Test the nRF24L01 modules to send and receive data
+# Watch this video for more information about the library: https://www.youtube.com/watch?v=aP8rSN-1eT0
 
-# Define Pins
+from nrf24l01 import NRF24L01
+from machine import SoftSPI, Pin
+from time import sleep
+import struct
+
+# Define Pins for motor control
 INPUT_1 = Pin(6, Pin.OUT)
 INPUT_2 = Pin(7, Pin.OUT)
 EN_A = Pin(8, Pin.OUT)
@@ -12,88 +17,117 @@ INPUT_3 = Pin(21, Pin.OUT)
 INPUT_4 = Pin(22, Pin.OUT)
 EN_B = Pin(27, Pin.OUT)
 
+# Enable the motor drivers
 EN_A.high()
 EN_B.high()
 
-CSN = Pin(14, Pin.OUT, value=1)
-CE = Pin(17, Pin.OUT, value=0)
-LED = Pin("LED", Pin.OUT)
+# Define Pins for nRF24L01 module
+CSN = Pin(14, mode=Pin.OUT, value=1)  # Chip Select Not
+CE = Pin(17, mode=Pin.OUT, value=0)   # Chip Enable
+LED = Pin(25, Pin.OUT)                # Onboard LED
+PAYLOAD_SIZE = 20
 
-PAYLOAD_SIZE = 32
+# Define the communication pipes
+SEND_PIPE = b"\xd2\xf0\xf0\xf0\xf0"
+RECEIVE_PIPE = b"\xe1\xf0\xf0\xf0\xf0"
 
-SEND_PIPE = b"\xe1\xf0\xf0\xf0\xf0"
-RECV_PIPE = b"\xd2\xf0\xf0\xf0\xf0"
+def setup():
+    """
+    Initialize the nRF24L01 module.
+    
+    Returns:
+        NRF24L01: The initialized nRF24L01 object.
+    """
+    print("=> Initialising the nRF24L0+ Module")
+    nrf = NRF24L01(SoftSPI(sck=Pin(2), mosi=Pin(3), miso=Pin(4)), CSN, CE, PAYLOAD_SIZE=PAYLOAD_SIZE)
+    nrf.open_tx_pipe(SEND_PIPE)
+    nrf.open_rx_pipe(1, RECEIVE_PIPE)
+    nrf.start_listening()
+    return nrf
 
-# Setup the nRF24L01 Radio
-def setup_radio():
-    radio = NRF24L01(SoftSPI(sck=Pin(2), mosi=Pin(3), miso=Pin(4)), CSN, CE, payload_size=PAYLOAD_SIZE)
-    radio.open_tx_pipe(SEND_PIPE)
-    radio.open_rx_pipe(1, RECV_PIPE)
-    radio.start_listening()
-    return radio
+def flash_led(times: int = None):
+    """
+    Flash the built-in LED the specified number of times.
+    
+    Parameters:
+        times (int): Number of times to flash the LED.
+    """
+    for _ in range(times):
+        LED.value(1)
+        sleep(0.01)
+        LED.value(0)
+        sleep(0.01)
 
-# Function to move motors forward
+def send(nrf, msg):
+    """
+    Send a message using the nRF24L01 module.
+    
+    Parameters:
+        nrf (NRF24L01): The initialized nRF24L01 object.
+        msg (str): The message to send.
+    """
+    print(f"=> Sending message: {msg}")
+    nrf.stop_listening()
+    for n in range(len(msg)):
+        try:
+            encoded_string = msg[n].encode()
+            byte_array = bytearray(encoded_string)
+            buf = struct.pack("s", byte_array)
+            nrf.send(buf)
+            flash_led(1)
+        except OSError:
+            print("=> Error: Message not sent")
+    nrf.send(b"\n")
+    nrf.start_listening()
+
+# Main code loop
+flash_led(1)
+nrf = setup()
+nrf.start_listening()
+msg_string = ""
+
 def move_forward():
+    """Move the robot forward."""
     INPUT_1.high()
     INPUT_2.low()
     INPUT_3.high()
     INPUT_4.low()
 
-# Function to move motors backward
 def move_backward():
+    """Move the robot backward."""
     INPUT_1.low()
     INPUT_2.high()
     INPUT_3.low()
     INPUT_4.high()
 
-# Function to stop motors
 def stop():
+    """Stop the robot."""
     INPUT_1.low()
     INPUT_2.low()
     INPUT_3.low()
     INPUT_4.low()
 
-# Function to flash the LED
-def flash_led(n):
-    for _ in range(n):
-        LED.high()
-        time.sleep(0.1)
-        LED.low()
-        time.sleep(0.1)
+while True:
+    msg = ""
+    # Check for Messages
+    if nrf.any():
+        package = nrf.recv()
+        message = struct.unpack("s", package)
+        msg = message[0].decode()
+        flash_led(1)
 
-# Main Loop
-def main():
-    global msg_string
-
-    nrf = setup_radio()
-    msg_string = ""
-
-    while True:
-        if nrf.any():
-            flash_led(3)
-            package = nrf.recv()
-            message = struct.unpack("s", package)
-            msg = message[0].decode()
-
-            print("[<=] Received: ", msg)
-
-            if (msg == "\n") and (len(msg_string) > 0):
-                print("[<=] Message: ", msg_string)
-                if msg_string == "f":
-                    move_forward()
-                elif msg_string == "b":
-                    move_backward()
-                else:
-                    stop()
-
-                msg_string = ""
+        # Check for the new line character
+        if (msg == "\n") and (len(msg_string) <= 20):
+            print(f"[<=] Message: {msg_string}")
+            if msg_string == "forward":
+                move_forward()
+            elif msg_string == "stop":
+                stop()
+            elif msg_string == "backward":
+                move_backward()
+            msg_string = ""
+        else:
+            if len(msg_string) <= 20:
+                msg_string += msg
             else:
-                if len(msg_string) < PAYLOAD_SIZE:
-                    msg_string += msg
-                else:
-                    msg_string = ""
-
-        time.sleep(1)
-
-if __name__ == "__main__":
-    main()
+                msg_string = ""
