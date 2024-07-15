@@ -8,8 +8,7 @@ from nrf24l01 import NRF24L01
 CSN = Pin(14, Pin.OUT, value=1)
 CE = Pin(17, Pin.OUT, value=0)
 LED = Pin("LED", Pin.OUT)
-
-PAYLOAD_SIZE = 32
+PAYLOAD_SIZE = 20
 
 SEND_PIPE = b"\xe1\xf0\xf0\xf0\xf0"
 RECV_PIPE = b"\xd2\xf0\xf0\xf0\xf0"
@@ -50,12 +49,9 @@ def setup_radio():
 def main():
     radio = setup_radio()
     while True:
-        input_msg = "forward"
-        send(radio, input_msg)
-        time.sleep(1)
-        input_msg = "backward"
-        send(radio, input_msg)
-        time.sleep(1)
+        print("Choose a direction: ")
+        direction = input()
+        send(radio, direction)
 
 if __name__ == "__main__":
     main()
