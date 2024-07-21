@@ -39,7 +39,7 @@ def setup():
         NRF24L01: The initialized nRF24L01 object.
     """
     print("=> Initialising the nRF24L0+ Module")
-    nrf = NRF24L01(SoftSPI(sck=Pin(2), mosi=Pin(3), miso=Pin(4)), CSN, CE, PAYLOAD_SIZE=PAYLOAD_SIZE)
+    nrf = NRF24L01(SoftSPI(sck=Pin(2), mosi=Pin(3), miso=Pin(4)), CSN, CE, payload_size=PAYLOAD_SIZE)
     nrf.open_tx_pipe(SEND_PIPE)
     nrf.open_rx_pipe(1, RECEIVE_PIPE)
     nrf.start_listening()
