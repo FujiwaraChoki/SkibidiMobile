@@ -1,8 +1,3 @@
-# demo.py
-# Kevin McAleer
-# Test the nRF24L01 modules to send and receive data
-# Watch this video for more information about the library: https://www.youtube.com/watch?v=aP8rSN-1eT0
-
 from nrf24l01 import NRF24L01
 from machine import SoftSPI, Pin
 from time import sleep
